@@ -5,6 +5,12 @@ resources:
     uri: git@github.com:mvandewouw/DevOpsTraining.git
     branch: master
     private_key: ((private-repo-key))
+- name: sources-write # Name of the resource
+  type: git # Resource type
+  source:
+    uri: git@github.com:mvandewouw/DevOpsTraining.git
+    private_key: ((private-repo-key))
+    branch: master
 
 
 jobs:
@@ -33,33 +39,15 @@ jobs:
     passed: [build]
   - task: unit-test
     file: sources/CI/task-unit-test.yml
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source: {repository: openjdk, tag: 8-alpine}
-      inputs:
-        - name: sources
-      run:
-        path: ./gradlew
-        args: ["test"]
-        dir: sources/application
 
 
-- name: deploy
+- name: deploy # Name of the job
+  serial: true # No parallel execution of the plan
   plan:
-  - get: sources
-    passed: [test]
+  - get: sources # Download the sources
     trigger: true
-  - task: unit-test
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source: {repository: openjdk, tag: 8-alpine}
-      inputs:
-        - name: sources
-      run:
-        path: ./gradlew
-        args: ["uploadArchives"]
-        dir: sources/application
+    passed: [test] # Trigger after job test has passed
+  - task: tag, publish and publish new version
+    file: sources/CI/task-deploy.yml
+  - put: sources-write
+    params: {repository: sources-output} # Push latest version after tagging en version bump
