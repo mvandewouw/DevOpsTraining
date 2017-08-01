@@ -2,7 +2,10 @@ resources:
 - name: sources
   type: git
   source:
-    uri: https://github.com/codecentric/DevOpsTraining.git
+    uri: git@github.com:mvandewouw/DevOpsTraining.git
+    branch: master
+    private_key: ((private-repo-key))
+
 
 jobs:
 - name: build
@@ -14,13 +17,13 @@ jobs:
       platform: linux
       image_resource:
         type: docker-image
-        source: {repository: openjdk, tag: 8-alpine}
+        source: {repository: openjdk, tag: 8-alpine} # Docker container to build in
       inputs:
-        - name: sources
+        - name: sources # Use the source resource
       run:
-        path: ./gradlew
-        args: ["build"]
-        dir: sources/application
+        path: ./gradlew # Command to execute
+        args: ["build", "-x", "test"]
+        dir: sources/application # Location to execute, note the 'sources' as directory prefix
 
 
 - name: test
@@ -29,6 +32,7 @@ jobs:
     trigger: true
     passed: [build]
   - task: unit-test
+    file: sources/CI/task-unit-test.yml
     config:
       platform: linux
       image_resource:
